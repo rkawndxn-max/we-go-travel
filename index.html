@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>12월 놀러갈 날 투표</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f3ee; --card:#ffffff; --ink:#1f2a37; --muted:#6b7280; --line:#e6e0d6;
+    --ok:#2f8f5b; --ok-soft:#e3f3ea; --no:#d4513b; --no-soft:#fbe7e3;
+    --accent:#1e4f7a; --gold:#e0a526;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans KR",system-ui,sans-serif;line-height:1.5}
+  .wrap{max-width:820px;margin:0 auto;padding:20px 16px 48px}
+  header h1{margin:0;font-size:26px;font-weight:900;letter-spacing:-.5px}
+  header p{margin:4px 0 0;color:var(--muted);font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px}
+  .hidden{display:none !important}
+  /* 이름 입력 */
+  #join h2{margin:0 0 6px;font-size:18px}
+  #join p{margin:0 0 14px;color:var(--muted);font-size:14px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  input[type=text]{flex:1;min-width:180px;font:inherit;font-size:16px;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;outline:none}
+  input[type=text]:focus{border-color:var(--accent)}
+  button{font:inherit;cursor:pointer;border:none;border-radius:10px;padding:11px 16px;font-weight:700;font-size:15px}
+  .primary{background:var(--accent);color:#fff}
+  .primary:disabled{opacity:.4;cursor:default}
+  .ghost{background:transparent;color:var(--muted);padding:6px 8px;font-weight:500;font-size:13px;text-decoration:underline}
+  /* 상단 바 */
+  .me{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+  .me b{font-size:16px}
+  .status{font-size:12px;color:var(--muted)}
+  .status.err{color:var(--no)}
+  /* 브러시 */
+  .hint{font-size:13px;color:var(--muted);margin:10px 2px 0}
+  /* 캘린더 */
+  #cal{width:100%;height:auto;display:block;margin-top:12px;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+  #cal .cell{cursor:pointer}
+  #cal .cell:hover .bg{stroke:var(--accent);stroke-width:2}
+  .legend{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+  .grad{display:inline-flex;border-radius:4px;overflow:hidden}
+  .grad span{width:22px;height:12px;display:inline-block}
+  /* 상세 & 순위 */
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:640px){.two{grid-template-columns:1fr}}
+  h3{margin:0 0 10px;font-size:16px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .chip{font-size:13px;padding:3px 10px;border-radius:999px;background:#f1ede6}
+  .chip.ok{background:var(--ok-soft);color:var(--ok)}
+  .chip.no{background:var(--no-soft);color:var(--no)}
+  .chip.me{outline:2px solid currentColor}
+  .label{font-size:12px;color:var(--muted);margin:6px 0 4px;font-weight:500}
+  .empty{font-size:13px;color:var(--muted)}
+  ol.rank{margin:0;padding:0;list-style:none}
+  ol.rank li{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);cursor:pointer}
+  ol.rank li:last-child{border-bottom:none}
+  .medal{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:13px;background:#eee;flex:none}
+  .medal.g1{background:var(--gold);color:#fff}
+  .bar{flex:1;height:8px;background:#f1ede6;border-radius:4px;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--ok)}
+  .cnt{font-size:13px;color:var(--muted);white-space:nowrap}
+  .ppl{font-size:13px;color:var(--muted)}
+  .ppl b{color:var(--ink)}
+  .notice{background:#fff8e6;border:1px solid #f1dca6;color:#7a5b10;font-size:13px;border-radius:10px;padding:10px 12px;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🎄 12월, 언제 놀러 갈까?</h1>
+    <p>2026년 12월 · 이름을 적고 참석 가능한 날을 모두 눌러 주세요. 다른 사람 투표가 실시간으로 반영돼요.</p>
+  </header>
+
+  <div id="notice" class="notice hidden"></div>
+
+  <!-- 1단계: 이름 -->
+  <section id="join" class="card">
+    <h2>먼저 이름을 알려주세요</h2>
+    <p>다른 사람들에게 이 이름으로 표시돼요. 나중에 다시 들어와도 같은 기기·계정이면 이어서 수정할 수 있어요.</p>
+    <form id="joinForm" class="row">
+      <input id="nameInput" type="text" maxlength="12" placeholder="예: 김민수" autocomplete="off">
+      <button class="primary" id="joinBtn" type="submit" disabled>시작하기</button>
+    </form>
+  </section>
+
+  <!-- 2단계: 투표 -->
+  <section id="vote" class="card hidden">
+    <div class="me">
+      <div><b id="meName"></b> 님으로 투표 중 <button class="ghost" id="rename" type="button">이름 바꾸기</button></div>
+      <span class="status" id="saveStatus"></span>
+    </div>
+    <p class="hint">⭕ <b>참석 가능한 날</b>을 눌러 체크하세요. 다시 누르면 체크가 풀려요. 색이 진할수록 가능한 사람이 많은 날이에요.</p>
+    <svg id="cal" viewBox="0 0 700 520" aria-label="2026년 12월 달력"></svg>
+    <div class="legend">
+      <span>가능 인원</span>
+      <span class="grad" id="gradLegend"></span>
+      <span>적음 → 많음</span>
+      <span>· <b style="color:var(--ok)">✓</b> 내가 가능</span>
+    </div>
+  </section>
+
+  <section id="info" class="two hidden">
+    <div class="card" style="margin-top:16px">
+      <h3 id="detailTitle">날짜를 눌러 보세요</h3>
+      <div id="detail"><p class="empty">날짜를 누르면 누가 가능하고 누가 안 되는지 볼 수 있어요.</p></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3>가장 많이 모이는 날 TOP 5</h3>
+      <ol class="rank" id="rank"></ol>
+      <p class="ppl" id="ppl"></p>
+    </div>
+  </section>
+</div>
+
+<script>
+/* ============================================================
+   ① Firebase 설정 — 여기만 바꾸면 됩니다.
+   Firebase 콘솔 > 프로젝트 설정 > 내 앱(웹) 에 나오는 값을 붙여 넣으세요.
+   비워 두면 "체험 모드"(이 기기에만 저장)로 동작해요.
+   ============================================================ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyA1CIVc5EwVWCHU0ufJpHgr2Z1cxLinPa8",
+  authDomain: "we-go-travel-d9433.firebaseapp.com",
+  projectId: "we-go-travel-d9433",
+  storageBucket: "we-go-travel-d9433.firebasestorage.app",
+  messagingSenderId: "447807612722",
+  appId: "1:447807612722:web:13b9c037c291b11e98592b"
+};
+/* 투표방 이름 — 다른 달/다른 모임에 다시 쓰려면 이 값만 바꾸세요. */
+const POLL_ID = "2026-12";
+
+(() => {
+  const YEAR = 2026, MONTH = 11; // 0-based: 11 = 12월
+  const DAYS = new Date(YEAR, MONTH + 1, 0).getDate();
+  const FIRST = new Date(YEAR, MONTH, 1).getDay();
+  const HOLIDAYS = { 25: "성탄절" };
+  const WEEK = ["일","월","화","수","목","금","토"];
+  const HEAT = ["#ffffff","#e4f3ea","#c3e5d0","#97d1af","#64b98a","#3a9c69","#1f7a4d"];
+  const LS_NAME = "decvote_name", LS_ID = "decvote_localid", LS_LOCAL = "decvote_localdata";
+
+  const $ = id => document.getElementById(id);
+  const ls = {
+    get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+    set(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
+  };
+
+  // ---------- 상태 ----------
+  let myId = null;
+  let myName = ls.get(LS_NAME) || "";
+  let my = { ok: [], no: [] };        // 내 선택 (날짜 숫자 배열)
+  let all = {};                        // id -> {name, ok, no}
+  let brush = "ok";
+  let selectedDay = null;
+  let fs = null;
+  let db = null, shared = false, joined = false, connecting = true, loaded = false, touched = false;
+
+  // ---------- 이름 입력 ----------
+  const nameInput = $("nameInput"), joinBtn = $("joinBtn");
+  nameInput.value = myName;
+  const syncBtn = () => joinBtn.disabled = !nameInput.value.trim();
+  nameInput.addEventListener("input", syncBtn); syncBtn();
+  $("joinForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const n = nameInput.value.trim().slice(0,12);
+    if (!n) return;
+    myName = n; ls.set(LS_NAME, n);
+    joined = true;
+    $("join").classList.add("hidden");
+    $("vote").classList.remove("hidden");
+    $("info").classList.remove("hidden");
+    $("meName").textContent = myName;
+    queueSave();
+    render();
+  });
+  $("rename").addEventListener("click", () => {
+    $("join").classList.remove("hidden");
+    nameInput.value = myName; syncBtn(); nameInput.focus();
+  });
+
+  // ---------- 브러시 ----------
+
+
+  // ---------- 범례 ----------
+  $("gradLegend").innerHTML = HEAT.slice(1).map(c => `<span style="background:${c}"></span>`).join("");
+
+  // ---------- 집계 ----------
+  function people() {
+    const map = Object.assign({}, all);
+    if (joined && myId) map[myId] = { name: myName, ok: my.ok, no: my.no };
+    return map;
+  }
+  function tally() {
+    const p = people(), t = {};
+    for (let d = 1; d <= DAYS; d++) t[d] = { ok: [], no: [] };
+    for (const [id, v] of Object.entries(p)) {
+      (v.ok || []).forEach(d => t[d] && t[d].ok.push({ id, name: v.name }));
+    }
+    return { t, total: Object.keys(p).length };
+  }
+
+  // ---------- 달력 (SVG) ----------
+  const NS = "http://www.w3.org/2000/svg";
+  const W = 700, PAD = 6, HEAD = 34, CW = (W - PAD*2) / 7, CH = 92;
+  const ROWS = Math.ceil((FIRST + DAYS) / 7);
+  const svg = $("cal");
+  svg.setAttribute("viewBox", `0 0 ${W} ${HEAD + ROWS*CH + PAD}`);
+
+  function el(tag, attrs, parent, text) {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (text != null) n.textContent = text;
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+
+  function render() {
+    const { t, total } = tally();
+    const maxOk = Math.max(1, ...Object.values(t).map(x => x.ok.length));
+    const best = Object.values(t).some(x => x.ok.length) ? maxOk : -1;
+    svg.innerHTML = "";
+
+    WEEK.forEach((w, i) => el("text", {
+      x: PAD + CW*i + CW/2, y: 22, "text-anchor": "middle", "font-size": 14, "font-weight": 700,
+      fill: i === 0 ? "#d4513b" : i === 6 ? "#1e4f7a" : "#6b7280"
+    }, svg, w));
+
+    for (let d = 1; d <= DAYS; d++) {
+      const idx = FIRST + d - 1, col = idx % 7, row = Math.floor(idx / 7);
+      const x = PAD + CW*col, y = HEAD + CH*row;
+      const okN = t[d].ok.length, noN = t[d].no.length;
+      const level = okN === 0 ? 0 : Math.max(1, Math.round(okN / maxOk * (HEAT.length - 1)));
+      const dark = level >= 5;
+      const g = el("g", { class: "cell", "data-d": d, tabindex: 0, role: "button",
+        "aria-label": `12월 ${d}일, 가능 ${okN}명` }, svg);
+
+      el("rect", { class: "bg", x: x+3, y: y+3, width: CW-6, height: CH-6, rx: 12,
+        fill: HEAT[level], stroke: d === selectedDay ? "#1e4f7a" : "#e6e0d6",
+        "stroke-width": d === selectedDay ? 3 : 1 }, g);
+
+      const isSun = col === 0 || HOLIDAYS[d], isSat = col === 6;
+      el("text", { x: x+14, y: y+26, "font-size": 17, "font-weight": 700,
+        fill: dark ? "#fff" : isSun ? "#d4513b" : isSat ? "#1e4f7a" : "#1f2a37" }, g, d);
+      if (HOLIDAYS[d]) el("text", { x: x+14, y: y+42, "font-size": 10, fill: dark ? "#fff" : "#d4513b" }, g, HOLIDAYS[d]);
+
+      // 내 상태 표시
+      if (my.ok.includes(d)) {
+        el("circle", { cx: x+CW-20, cy: y+20, r: 11, fill: "#2f8f5b", stroke: "#fff", "stroke-width": 2 }, g);
+        el("path", { d: `M${x+CW-25} ${y+20} l4 4 l7 -8`, stroke: "#fff", "stroke-width": 2.4, fill: "none", "stroke-linecap": "round", "stroke-linejoin": "round" }, g);
+      }
+
+      // 최다 날짜 별
+      if (okN === best && okN > 0) {
+        el("text", { x: x+CW/2, y: y+44, "text-anchor": "middle", "font-size": 16 }, g, "⭐");
+      }
+
+      // 인원 수
+      if (okN) el("text", { x: x+14, y: y+CH-16, "font-size": 15, "font-weight": 900,
+        fill: dark ? "#fff" : "#1f7a4d" }, g, `${okN}명`);
+
+      // 가능 비율 막대
+      if (total > 0) {
+        el("rect", { x: x+12, y: y+CH-12, width: CW-24, height: 3, rx: 1.5, fill: dark ? "rgba(255,255,255,.35)" : "#ece7df" }, g);
+        el("rect", { x: x+12, y: y+CH-12, width: (CW-24) * okN / total, height: 3, rx: 1.5, fill: dark ? "#fff" : "#2f8f5b" }, g);
+      }
+    }
+    renderDetail(t);
+    renderRank(t, total);
+  }
+
+  svg.addEventListener("click", e => {
+    const g = e.target.closest(".cell"); if (!g) return;
+    tap(+g.dataset.d);
+  });
+  svg.addEventListener("keydown", e => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const g = e.target.closest(".cell"); if (!g) return;
+    e.preventDefault(); tap(+g.dataset.d);
+  });
+
+  function tap(d) {
+    selectedDay = d; touched = true;
+    my.no = [];
+    if (my.ok.includes(d)) my.ok = my.ok.filter(x => x !== d);
+    else my.ok = [...my.ok, d].sort((a,b)=>a-b);
+    queueSave();
+    render();
+  }
+
+  function dayLabel(d) {
+    const w = WEEK[new Date(YEAR, MONTH, d).getDay()];
+    return `12월 ${d}일 (${w})${HOLIDAYS[d] ? " · " + HOLIDAYS[d] : ""}`;
+  }
+
+  function chips(list, cls) {
+    if (!list.length) return `<p class="empty">없음</p>`;
+    return `<div class="chips">${list.map(p =>
+      `<span class="chip ${cls}${p.id === myId ? " me" : ""}">${esc(p.name || "이름없음")}</span>`).join("")}</div>`;
+  }
+  function renderDetail(t) {
+    if (!selectedDay) return;
+    const x = t[selectedDay];
+    const okIds = new Set(x.ok.map(p => p.id));
+    const rest = Object.entries(people()).filter(([id]) => !okIds.has(id)).map(([id, v]) => ({ id, name: v.name }));
+    $("detailTitle").textContent = dayLabel(selectedDay);
+    $("detail").innerHTML =
+      `<div class="label">⭕ 참석 가능 ${x.ok.length}명</div>${chips(x.ok, "ok")}` +
+      `<div class="label">체크 안 함 ${rest.length}명</div>${chips(rest, "")}`;
+  }
+  function renderRank(t, total) {
+    const arr = Object.entries(t).map(([d, v]) => ({ d: +d, ok: v.ok.length, no: v.no.length }))
+      .filter(x => x.ok > 0)
+      .sort((a, b) => b.ok - a.ok || a.d - b.d).slice(0, 5);
+    $("rank").innerHTML = arr.length ? arr.map((x, i) => `
+      <li data-d="${x.d}">
+        <span class="medal ${i === 0 ? "g1" : ""}">${i + 1}</span>
+        <span style="min-width:118px;font-weight:700;font-size:14px">${dayLabel(x.d).replace(/ · .*/, "")}</span>
+        <span class="bar"><i style="width:${total ? x.ok / total * 100 : 0}%"></i></span>
+        <span class="cnt">${x.ok}/${total}명</span>
+      </li>`).join("") : `<li class="empty" style="cursor:default">아직 투표가 없어요.</li>`;
+    const names = Object.values(people()).map(p => p.name).filter(Boolean);
+    $("ppl").innerHTML = names.length
+      ? `참여자 <b>${names.length}명</b>: ${names.map(esc).join(", ")}` : "";
+  }
+  $("rank").addEventListener("click", e => {
+    const li = e.target.closest("li[data-d]"); if (!li) return;
+    selectedDay = +li.dataset.d; render();
+    svg.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+
+  // ---------- 저장 ----------
+  let saveTimer = null, saving = false, dirty = false;
+  const status = (msg, err) => { const s = $("saveStatus"); s.textContent = msg; s.classList.toggle("err", !!err); };
+
+  function queueSave() {
+    if (!joined) return;
+    dirty = true; status("저장 대기…");
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, 600);
+  }
+  async function flush() {
+    if (saving || !dirty) return;
+    if (connecting || (shared && !loaded)) { clearTimeout(saveTimer); saveTimer = setTimeout(flush, 500); return; }
+    saving = true; dirty = false;
+    const payload = { name: myName, ok: my.ok.slice(), no: my.no.slice(), updatedAt: Date.now() };
+    try {
+      if (shared && db && myId) {
+        await fs.setDoc(fs.doc(db, "polls", POLL_ID, "votes", myId), payload);
+        status("✓ 저장됨");
+      } else {
+        ls.set(LS_LOCAL, JSON.stringify(payload));
+        status("이 기기에만 저장됨", true);
+      }
+    } catch (err) {
+      console.log("save failed", err);
+      status("저장 실패 – 잠시 후 날짜를 다시 눌러 주세요", true);
+      dirty = true; saving = false;
+      return;
+    }
+    saving = false;
+    if (dirty) { clearTimeout(saveTimer); saveTimer = setTimeout(flush, 600); }
+  }
+
+  // ---------- 공유 데이터 연결 ----------
+  function applyRemote(snapDocs) {
+    const next = {};
+    snapDocs.forEach(d => {
+      const v = d.data ? d.data() : d;
+      const id = d.id;
+      if (!v || typeof v !== "object") return;
+      const clean = arr => Array.isArray(arr) ? arr.filter(n => Number.isInteger(n) && n >= 1 && n <= DAYS) : [];
+      next[id] = { name: String(v.name || "").slice(0, 12), ok: clean(v.ok), no: [] };
+    });
+    // 처음 불러올 때 내 기존 투표 복원
+    loaded = true;
+    if (myId && next[myId] && !restored && !touched) {
+      restored = true;
+      my = { ok: next[myId].ok, no: [] };
+      if (!myName && next[myId].name) { myName = next[myId].name; nameInput.value = myName; syncBtn(); }
+    }
+    delete next[myId];
+    all = next;
+    render();
+  }
+  let restored = false;
+
+  function localFallback(msg) {
+    connecting = false;
+    myId = ls.get(LS_ID);
+    if (!myId) { myId = "local-" + Math.random().toString(36).slice(2, 10); ls.set(LS_ID, myId); }
+    try {
+      const saved = JSON.parse(ls.get(LS_LOCAL) || "null");
+      if (saved) { my = { ok: saved.ok || [], no: [] }; if (!myName) myName = saved.name || ""; }
+    } catch (e) {}
+    nameInput.value = myName; syncBtn();
+    const n = $("notice"); n.textContent = msg; n.classList.remove("hidden");
+    render();
+  }
+
+  (async () => {
+    render();
+    if (!FIREBASE_CONFIG.apiKey || !FIREBASE_CONFIG.projectId) {
+      localFallback("체험 모드예요: 아직 Firebase 설정이 비어 있어서 이 기기에만 저장돼요. (관리자: index.html 상단의 FIREBASE_CONFIG를 채워 주세요)");
+      return;
+    }
+    const V = "10.12.2", base = "https://www.gstatic.com/firebasejs/" + V + "/";
+    try {
+      const [appMod, authMod, fsMod] = await Promise.all([
+        import(base + "firebase-app.js"),
+        import(base + "firebase-auth.js"),
+        import(base + "firebase-firestore.js")
+      ]);
+      fs = fsMod;
+      const app = appMod.initializeApp(FIREBASE_CONFIG);
+      const auth = authMod.getAuth(app);
+      const cred = await authMod.signInAnonymously(auth);   // 사용자에게 보이지 않는 익명 로그인
+      myId = cred.user.uid;
+      db = fs.getFirestore(app);
+    } catch (e) {
+      console.log("firebase init failed", e);
+      localFallback("서버에 연결하지 못해 이 기기에만 저장돼요. 인터넷 연결을 확인하거나 잠시 후 새로 고침해 주세요.");
+      return;
+    }
+    shared = true; connecting = false;
+    fs.onSnapshot(fs.collection(db, "polls", POLL_ID, "votes"),
+      snap => applyRemote(snap.docs),
+      err => { console.log("snapshot error", err); status("실시간 연결 끊김 – 새로 고침해 주세요", true); }
+    );
+  })();
+})();
+</script>
+</body>
+</html>
